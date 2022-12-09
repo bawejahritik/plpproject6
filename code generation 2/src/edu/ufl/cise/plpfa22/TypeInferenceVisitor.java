@@ -110,7 +110,7 @@ public class TypeInferenceVisitor implements ASTVisitor {
     public Object visitStatementCall(StatementCall statementCall, Object arg) throws PLPException {
         StringBuffer stringBuffer = new StringBuffer(statementCall.ident.getDec().getClass().getName());
         String s = "edu.ufl.cise.plpfa22.ast.ProcDec";
-        if(s.contentEquals(stringBuffer)){
+        if(!s.contentEquals(stringBuffer)){
             //System.out.println("in");
             throw new TypeCheckException();
         }

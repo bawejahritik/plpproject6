@@ -36,11 +36,12 @@ public class CodeGenVisitor implements ASTVisitor, Opcodes {
 	final String object = "java/lang/Object";
 	final String currDescriptorEmpty = "()V";
 	String currentProcedurePath;
-	int checkProcedureFlag;
+	long checkProcedureFlag;
 	List<CodeGenUtils.GenClass> byteCodeList = new ArrayList<>();
 
 	ClassWriter classWriter;
 	protected ClassWriter classWriter1;
+
 
 
 	public CodeGenVisitor(String className, String packageName, String sourceFileName) {
@@ -63,27 +64,28 @@ public class CodeGenVisitor implements ASTVisitor, Opcodes {
 	@Override
 	public Object visitBlock(Block block, Object arg) throws PLPException {
 
-		switch (checkProcedureFlag){
+		switch ((int) checkProcedureFlag){
 			case 1 -> {
 				classWriter1 = (ClassWriter) arg;
-				int i = 0;
+				long i = 0;
 				while(i < block.procedureDecs.size()){
-					block.procedureDecs.get(i).visit(this, arg);
+					block.procedureDecs.get((int) i).visit(this, arg);
 					i++;
 				}
 			}
 			case 0 -> {
 				ClassWriter classWriter1 = (ClassWriter) arg;
-				int j=0, k=0;
+				long j=0, k=0;
 				while(j < block.varDecs.size()){
-					block.varDecs.get(j).visit(this, arg);
+					block.varDecs.get((int) j).visit(this, arg);
 					j++;
 				}
 				while (k < block.procedureDecs.size()){
-					block.procedureDecs.get(k).visit(this, arg);
+					block.procedureDecs.get((int) k).visit(this, arg);
+					k++;
 				}
-
-				MethodVisitor methodVisitor = classWriter1.visitMethod(0, "run", currDescriptorEmpty, null, null);
+				String currName = "run";
+				MethodVisitor methodVisitor = classWriter1.visitMethod(0, currName, currDescriptorEmpty, null, null);
 				methodVisitor.visitCode();
 
 				block.statement.visit(this, methodVisitor);
@@ -113,9 +115,9 @@ public class CodeGenVisitor implements ASTVisitor, Opcodes {
 		//create a classWriter and visit it
 		currentProcedurePath = fullyQualifiedClassName;
 		classWriter = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
-		//Hint:  if you get failures in the visitMaxs, try creating a ClassWriter with 0
+		//Hlong:  if you get failures in the visitMaxs, try creating a ClassWriter with 0
 		// instead of ClassWriter.COMPUTE_FRAMES.  The result will not be a valid classfile,
-		// but you will be able to print it so you can see the instructions.  After fixing,
+		// but you will be able to prlong it so you can see the instructions.  After fixing,
 		// restore ClassWriter.COMPUTE_FRAMES
 		classWriter.visit(V18, ACC_PUBLIC | ACC_SUPER, fullyQualifiedClassName, null, "java/lang/Object", new String[] {runnable});
 		classWriter.visitSource(className.concat(".java"), null);
@@ -157,7 +159,7 @@ public class CodeGenVisitor implements ASTVisitor, Opcodes {
 		byteCodeList.add(new CodeGenUtils.GenClass(fullyQualifiedClassName, classWriter.toByteArray()));
 		Collections.reverse(byteCodeList);
 		//return the byteCodeList making up the classfile
-		System.out.println("end");
+		//System.out.prlongln("end");
 		return byteCodeList;
 	}
 
@@ -177,7 +179,7 @@ public class CodeGenVisitor implements ASTVisitor, Opcodes {
 		ClassWriter cw = (ClassWriter) arg;
 		String varDecText = new String(String.valueOf(varDec.ident.getText()));
 		String currentDescriptor = varDec.getCurrentDescriptor();
-		System.out.println("current " + varDec.getCurrentDescriptor());
+		//System.out.prlongln("current " + varDec.getCurrentDescriptor());
 		FieldVisitor fv = cw.visitField(0, varDecText, currentDescriptor, null, null);
 		fv.visitEnd();
 
@@ -188,7 +190,7 @@ public class CodeGenVisitor implements ASTVisitor, Opcodes {
 //• Create instance of class corresponding to procedure
 //• The <init> method takes instance of lexically enclosing class as parameter.  If the procedure is
 //	enclosed in this one, ALOAD_0 works.  (Recall that we are in a virtual method, run, so the JVM
-//	will have automatically loaded “this” into local variable slot 0.)  Otherwise follow the chain of
+//	will have automatically loaded “this” longo local variable slot 0.)  Otherwise follow the chain of
 //	this$n references to find an instance of the enclosing class of the procedure.  (Use nesting
 //	levels)
 //			• Invoke run method.
@@ -197,8 +199,8 @@ public class CodeGenVisitor implements ASTVisitor, Opcodes {
 	public Object visitStatementCall(StatementCall statementCall, Object arg) throws PLPException {
 		MethodVisitor mv = (MethodVisitor) arg;
 		String path = fullyQualifiedClassName + statementCall.ident.getDec().getProcedurePath();
-		int check = Objects.equals(currentProcedurePath, path) ? 1 : 0;
-		switch (check) {
+		long check = Objects.equals(currentProcedurePath, path) ? 1 : 0;
+		switch ((int) check) {
 			case 1 -> {
 				mv.visitVarInsn(ALOAD, 0);
 				mv.visitMethodInsn(INVOKEVIRTUAL, path, "run", currDescriptorEmpty, false);
@@ -212,29 +214,30 @@ public class CodeGenVisitor implements ASTVisitor, Opcodes {
 				String currentSuperClass = new String(currentProcedurePath);
 				String currentSubClass = new String(currentProcedurePath);
 
-				int i = statementCall.ident.getNest()-1;
-				int j = statementCall.ident.getDec().getNest();
+				long i = statementCall.ident.getNest()-1;
+				long j = statementCall.ident.getDec().getNest();
 				while (i >= j) {
 					currentSubClass = currentSuperClass;
-					int k = currentSubClass.length();
+					long k = currentSubClass.length();
 					while(k >= 0){
-						if (currentSubClass.charAt(k) == '$'){
-							currentSuperClass = currentSubClass.substring(0, k);
+						if (currentSubClass.charAt((int) k) == '$'){
+							currentSuperClass = currentSubClass.substring(0, (int) k);
 							break;
 						}
 						k--;
 					}
-					String currName = "this$" + i;
+					String stringToConcat = "this$";
+					String currName = stringToConcat + i;
 					String currDescriptor = "L" + currentSuperClass + ";";
 					mv.visitFieldInsn(GETFIELD, currentSubClass, currName, currDescriptor);
 					i--;
 				}
 
 				String currentSuperClassName = new String("");
-				int i1 = currentSuperClassName.length()-1;
+				long i1 = currentSuperClassName.length()-1;
 				while(i1 >= 0){
-					if(path.charAt(i1) == '$'){
-						currentSuperClassName = path.substring(0, i1);
+					if(path.charAt((int) i1) == '$'){
+						currentSuperClassName = path.substring(0, (int) i1);
 						break;
 					}
 					String currName = "<init>";
@@ -270,9 +273,9 @@ public class CodeGenVisitor implements ASTVisitor, Opcodes {
 	//Hritik
 	@Override
 	public Object visitStatementBlock(StatementBlock statementBlock, Object arg) throws PLPException {
-		int i = 0;
+		long i = 0;
 		while(i < statementBlock.statements.size()){
-			statementBlock.statements.get(i).visit(this, arg);
+			statementBlock.statements.get((int) i).visit(this, arg);
 			i++;
 		}
 
@@ -284,7 +287,7 @@ public class CodeGenVisitor implements ASTVisitor, Opcodes {
 	public Object visitStatementIf(StatementIf statementIf, Object arg) throws PLPException {
 		MethodVisitor methodVisitor = (MethodVisitor)arg;
 		statementIf.expression.visit(this, arg);
-		System.out.println(statementIf.expression.getType());
+		//System.out.prlongln(statementIf.expression.getType());
 		Label label = new Label();
 		methodVisitor.visitInsn(ICONST_1);
 		methodVisitor.visitJumpInsn(IF_ICMPNE, label);
@@ -511,10 +514,10 @@ public class CodeGenVisitor implements ASTVisitor, Opcodes {
 	@Override
 	public Object visitExpressionIdent(ExpressionIdent expressionIdent, Object arg) throws PLPException {
 		MethodVisitor methodVisitor = (MethodVisitor) arg;
-		int check = expressionIdent.getDec() instanceof ConstDec ? 1 : 0;
-		switch (check){
+		long check = expressionIdent.getDec() instanceof ConstDec ? 1 : 0;
+		switch ((int) check){
 			case 1 -> {
-				System.out.println("inside case 1");
+				//System.out.prlongln("inside case 1");
 				methodVisitor.visitLdcInsn(((ConstDec) expressionIdent.getDec()).val);
 			}
 			case 0 -> {
@@ -525,12 +528,17 @@ public class CodeGenVisitor implements ASTVisitor, Opcodes {
 
 				long currentNest = expressionIdent.getNest();
 				long i = currentNest;
+				System.out.println("super " + currentSuperClass);
+				System.out.println("sub " + currentSubClass);
 				while(i > currentDeclartionLvl){
+					System.out.println("i " + i);
 					currentSubClass = currentSuperClass;
-					int j = currentSubClass.length();
+					long j = currentSubClass.length()-1;
 					while(j >= 0){
-						if(currentProcedurePath.charAt(j) == '$'){
-							currentSuperClass = currentSubClass.substring(0, j);
+						//System.out.prlongln("j " + j);
+						if(currentProcedurePath.charAt((int) j) == '$'){
+							//System.out.prlongln("inside if");
+							currentSuperClass = currentSubClass.substring(0, (int) j);
 							break;
 						}
 						j--;
@@ -539,7 +547,9 @@ public class CodeGenVisitor implements ASTVisitor, Opcodes {
 					String currName = "this$" + (j-1);
 					String currDescriptor = "L" + currentSuperClass + ";";
 					methodVisitor.visitFieldInsn(GETFIELD, currentSubClass, currName, currDescriptor);
+					i--;
 				}
+
 				String currName = String.valueOf(expressionIdent.firstToken.getText());
 				String currDescriptor = expressionIdent.getDec().getCurrentDescriptor();
 				methodVisitor.visitFieldInsn(GETFIELD, currentSuperClass, currName, currDescriptor);
@@ -580,8 +590,10 @@ public class CodeGenVisitor implements ASTVisitor, Opcodes {
 //
 	@Override
 	public Object visitProcedure(ProcDec procDec, Object arg) throws PLPException {
+		//System.out.prlongln(fullyQualifiedClassName);
+		//System.out.prlongln(procDec.getProcedurePath());
 		currentProcedurePath = fullyQualifiedClassName.concat(procDec.getProcedurePath());
-		switch (checkProcedureFlag){
+		switch ((int) checkProcedureFlag){
 			case 1 -> {
 				ClassWriter classWriter2 = (ClassWriter) arg;
 				classWriter2.visitNestMember(currentProcedurePath);
@@ -592,10 +604,10 @@ public class CodeGenVisitor implements ASTVisitor, Opcodes {
 				ClassWriter classWriter2 = new ClassWriter(ClassWriter.COMPUTE_FRAMES);
 				String classNameCurrent = fullyQualifiedClassName.concat(procDec.getProcedurePath());
 				String classNameParent = new String("");
-				int i = classNameCurrent.length()-1;
+				long i = classNameCurrent.length()-1;
 				while(i >= 0){
-					if(className.charAt(i) == '$'){
-						classNameParent = classNameCurrent.substring(0, i);
+					if(classNameCurrent.charAt((int) i) == '$'){
+						classNameParent = classNameCurrent.substring(0, (int) i);
 						break;
 					}
 					i--;
@@ -626,10 +638,10 @@ public class CodeGenVisitor implements ASTVisitor, Opcodes {
 
 				currentProcedurePath = fullyQualifiedClassName.concat(procDec.getProcedurePath());
 				procDec.block.visit(this, classWriter2);
-				int j = currentProcedurePath.length()-1;
+				long j = currentProcedurePath.length()-1;
 				while (j >= 0 ){
-					if (currentProcedurePath.charAt(j) == '$'){
-						currentProcedurePath = currentProcedurePath.substring(0, j);
+					if (currentProcedurePath.charAt((int) j) == '$'){
+						currentProcedurePath = currentProcedurePath.substring(0, (int) j);
 						break;
 					}
 					j--;
@@ -660,13 +672,13 @@ public class CodeGenVisitor implements ASTVisitor, Opcodes {
 
 	@Override
 	public Object visitIdent(Ident ident, Object arg) throws PLPException {
-		System.out.println("inside visit ident");
+		//System.out.prlongln("inside visit ident");
 		MethodVisitor methodVisitor = (MethodVisitor) arg;
 		methodVisitor.visitVarInsn(ALOAD, 0);
 
 		long nestLvl = ident.getDec().getNest();
 		long currentNestLvl = ident.getNest();
-		System.out.println("current " + currentProcedurePath);
+		//System.out.prlongln("current " + currentProcedurePath);
 		String currentSuperClass = currentProcedurePath;
 		String currentSubClass;
 
@@ -674,30 +686,30 @@ public class CodeGenVisitor implements ASTVisitor, Opcodes {
 //		currentSubClass = directoryList[directoryList.length - 1];
 
 		long i = currentNestLvl;
-		System.out.println("i " + i);
-		System.out.println("nestLvl " + nestLvl);
-		System.out.println("outside while");
+		//System.out.prlongln("i " + i);
+		//System.out.prlongln("nestLvl " + nestLvl);
+		//System.out.prlongln("outside while");
 		while(i > nestLvl){
-			System.out.println("inside while");
+			//System.out.prlongln("inside while");
 			currentSubClass = currentSuperClass;
-			int j = currentSubClass.length()-1;
+			long j = currentSubClass.length()-1;
 			while (j >= 0){
-				if(currentProcedurePath.charAt(j) == '$'){
-					currentSuperClass = currentSubClass.substring(0, j);
+				if(currentProcedurePath.charAt((int) j) == '$'){
+					currentSuperClass = currentSubClass.substring(0, (int) j);
 					break;
 				}
 				j--;
 			}
-			System.out.println("before");
+			//System.out.prlongln("before");
 			methodVisitor.visitFieldInsn(GETFIELD, currentSubClass, "this$"+(currentNestLvl-1), "L" + currentSuperClass +";");
-			System.out.println("first field insn");
+			//System.out.prlongln("first field insn");
 			i--;
 		}
 		methodVisitor.visitInsn(SWAP);
-		System.out.println("super " + currentSuperClass);
+		//System.out.prlongln("super " + currentSuperClass);
 
 		methodVisitor.visitFieldInsn(PUTFIELD, currentSuperClass, String.valueOf(ident.firstToken.getText()), ident.getDec().getCurrentDescriptor());
-		System.out.println("after putfield");
+		//System.out.prlongln("after putfield");
 		return null;
 	}
 

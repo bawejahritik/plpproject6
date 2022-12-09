@@ -20,6 +20,7 @@ public class ScopeVisitor implements ASTVisitor {
     boolean pass = false;
     String scopeId = createID();
     SymbolTable symbolTable = new SymbolTable();
+    String lastpathused = new String("");
 
     private static AtomicLong idCounter = new AtomicLong();
 
@@ -81,10 +82,10 @@ public class ScopeVisitor implements ASTVisitor {
     public Object visitVarDec(VarDec varDec, Object arg) throws PLPException {
         if(pass){
 //            String name = varDec.ident.getText().toString();
-            String name = String.valueOf(varDec.ident.getText());
+            String currentname = String.valueOf(varDec.ident.getText());
             varDec.setNest(symbolTable.currentLevel);
-            symbolTable.insert(name, varDec);
-            System.out.println(name + " " + symbolTable.currentLevel);
+            symbolTable.insert(currentname, varDec);
+            System.out.println(currentname + " " + symbolTable.currentLevel);
         }
         return null;
     }
@@ -97,8 +98,8 @@ public class ScopeVisitor implements ASTVisitor {
             ident.visit(this, arg);
 
 //            String name = statementCall.ident.getText().toString();
-            String name = String.valueOf(statementCall.ident.getText());
-            Declaration dec = symbolTable.lookup(name);
+            String currentname = String.valueOf(statementCall.ident.getText());
+            Declaration dec = symbolTable.lookup(currentname);
             if(dec == null) throw new ScopeException();
         }
 
@@ -110,8 +111,8 @@ public class ScopeVisitor implements ASTVisitor {
     public Object visitStatementInput(StatementInput statementInput, Object arg) throws PLPException {
         if(pass){
 //            String name = statementInput.ident.getText().toString();
-            String name = String.valueOf(statementInput.ident.getText());
-            Declaration dec = symbolTable.lookup(name);
+            String currentname = String.valueOf(statementInput.ident.getText());
+            Declaration dec = symbolTable.lookup(currentname);
             if(dec == null) throw new ScopeException();
             statementInput.ident.visit(this, arg);
         }
@@ -169,8 +170,8 @@ public class ScopeVisitor implements ASTVisitor {
     public Object visitExpressionIdent(ExpressionIdent expressionIdent, Object arg) throws PLPException {
         if(pass){
 //            String name = expressionIdent.firstToken.getText().toString();
-            String name = String.valueOf(expressionIdent.firstToken.getText());
-            Declaration dec = symbolTable.lookup(name);
+            String currentname = String.valueOf(expressionIdent.firstToken.getText());
+            Declaration dec = symbolTable.lookup(currentname);
 
             expressionIdent.setNest(symbolTable.currentLevel);
             if(dec == null) throw new ScopeException();
@@ -208,12 +209,24 @@ public class ScopeVisitor implements ASTVisitor {
             symbolTable.closeScope();
         } else{
             // String name = procDec.ident.getText().toString();
-            String name = String.valueOf(procDec.ident.getText());
-            symbolTable.insert(name, procDec);
+            String currentname = String.valueOf(procDec.ident.getText());
+            symbolTable.insert(currentname, procDec);
             procDec.setNest(symbolTable.currentLevel);
             symbolTable.entry();
+            procDec.setProcedurePath(lastpathused + "$" + currentname);
+            lastpathused = procDec.getProcedurePath();
             procDec.block.visit(this, arg);
             symbolTable.closeScope();
+
+            int i = lastpathused.length()-1;
+            System.out.println("last " + lastpathused);
+            while(i>= 0){
+                if(lastpathused.charAt(i) == '$'){
+                    lastpathused = lastpathused.substring(0, i);
+                    break;
+                }
+                i--;
+            }
         }
         // Doubt how to pass this twice as discussed in lecture?
 
